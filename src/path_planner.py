@@ -1,4 +1,5 @@
 import rospy
+import threading
 from std_msgs.msg import String
 from std_msgs.msg import PoseStamped
 from vi_device_msgs import OdometryExtended
@@ -8,7 +9,7 @@ from vi_pc_perception import ObstacleArray, Obstacle
 
 def path_planner():
     publisher = rospy.Publisher('/control/global/advance_route', WaypointArray2, queue_size=10)
-    planner = LocalPlanner(publisher)
+    planner = LocalPlanner(publisher, None)
 
     rospy.init_node('path_planner', anonymous=False)
     rospy.Subscriber('/map/pose', PoseStamped, planner.update_position)
@@ -22,25 +23,36 @@ def path_planner():
 
 
 class LocalPlanner:
+    position = None
+    speed = None
+    obstacles_data = None
+    algorithm = None
 
-    def __init__(self, publisher):
+    def __init__(self, publisher, algorithm):
         self.publisher = publisher
+        self.algorithm = algorithm
+        self.lock = threading.Lock()
 
     def update_position(self, pos):
-        pass
+        with self.lock:
+            self.position = pos
 
     def update_speed(self, speed):
-        pass
+        with self.lock:
+            self.speed = speed
 
     def update_obstacles(self, data):
-        pass
+        with self.lock:
+            self.obstacles_data = data
 
-    def calculate():
-        pass
+    def calculate(self):
+        current_data = None
+        with self.lock:
+            current_data = (self.position, self.speed, self.obstacles_data)
+        return algorithm(current_data)
 
     def publish(self):
-        calculate()
-        self.publisher.publish("hello world")
+        self.publisher.publish(calculate())
         #rospy.loginfo(rospy.get_caller_id() + 'I heard %s', data.data)
         
 
